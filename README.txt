@@ -1,5 +1,7 @@
 # LayerManager
 
+( 아래에서 언급하는 layer 는 GameObject 에 있는 기본 layer 가 아닌 LayerSetting 에서 관리하는 layer 를 말합니다. )
+
 LayerSetting 컴포넌트를 유닛에 추가하면 복수의 layer 를 자유롭게 설정할 수 있습니다.
 
 Edit Layer Realtime 을 true 로 설정하면 inspector 에서 설정하는 layer 가 실시간으로 적용됩니다.
