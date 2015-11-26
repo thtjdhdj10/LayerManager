@@ -3,48 +3,72 @@ using UnityEditor;
 using System.Collections.Generic;
 
 [CustomEditor(typeof(LayerSetting))]
+[CanEditMultipleObjects]
 public class LayerSettingEditor : Editor
 {
+    SerializedProperty layerProp;
+    SerializedProperty nbProp;
+    string layerListName = "layers";
+    
     bool layerListFold = true;
 
-    public override void OnInspectorGUI()
+    Dictionary<int, string> indexLayerName = new Dictionary<int, string>();
+
+    void OnEnable()
     {
-        //        base.OnInspectorGUI();
+        layerProp = serializedObject.FindProperty(layerListName);
+        if(layerProp == null)
+            Debug.LogError(layerListName + " is unvalid property name");
 
-        LayerSetting ls = target as LayerSetting;
+        int idx = 0;
 
-        Dictionary<int, string> layerNameNumber = new Dictionary<int, string>();
-
-        for (int i = 0; i < 32; i++)
+        for (int i = 0; i < LayerManager.MaxLayerCount; i++)
         {
             string name = LayerMask.LayerToName(i);
 
             if (name.Length > 0)
             {
-                layerNameNumber[i] = name;
+                indexLayerName[idx++] = name;
             }
         }
+    }
 
-        //
+    public override void OnInspectorGUI()
+    {
+        serializedObject.Update();
+        var coll = indexLayerName.Keys;
+        layerProp.arraySize = coll.Count;
 
-        EditorGUILayout.Space();
+        // target 은 값을 가져오는 용도로만 사용할 것
+        //        LayerSetting ls = target as LayerSetting;
 
-        ls.editRealtime = EditorGUILayout.Toggle("Edit Layer Realtime", ls.editRealtime);
+        ShowList(layerProp);
 
-        if (layerListFold = EditorGUILayout.Foldout(layerListFold, "Layers"))
-        {
-            for (int i = 0; i < 32; ++i)
-            {
-                if (layerNameNumber.ContainsKey(i) == true)
-                {
-                    ls.layers[i] = EditorGUILayout.Toggle(layerNameNumber[i], ls.layers[i]);
-                }
-            }
-        }
+        serializedObject.ApplyModifiedProperties();
 
+        //Rect r = GUILayoutUtility.GetRect(0f, 16f);
+        //bool showNext = EditorGUI.PropertyField(r, layerProp, true);
+        //bool hasName = layerProp.NextVisible(showNext);
+
+        //        if (layerListFold = EditorGUILayout.Foldout(layerListFold, "Layers"))
 
     }
 
+    void ShowList(SerializedProperty prop)
+    {
+        var coll = indexLayerName.Keys;
 
+        EditorGUILayout.Space();
+        
+        if(layerListFold = EditorGUILayout.Foldout(layerListFold,new GUIContent("layers")))
+        {
+            foreach (int key in coll)
+            {
+                EditorGUILayout.PropertyField(prop.GetArrayElementAtIndex(key),
+                    new GUIContent(indexLayerName[key]));
+            }
+        }
+        
+    }
 
 }
