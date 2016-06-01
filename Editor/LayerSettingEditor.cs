@@ -2,47 +2,34 @@
 using UnityEditor;
 using System.Collections.Generic;
 
-[CustomEditor(typeof(LayerSetting))]
-[CanEditMultipleObjects]
+[CustomEditor(typeof(LayerSetting)), CanEditMultipleObjects]
 public class LayerSettingEditor : Editor
 {
-    SerializedProperty layerProp;
-    SerializedProperty nbProp;
-    string layerListName = "layers";
-    
     bool layerListFold = true;
 
-    Dictionary<int, string> indexLayerName = new Dictionary<int, string>();
+    SerializedProperty layerMaskProp;
 
     void OnEnable()
     {
-        layerProp = serializedObject.FindProperty(layerListName);
-        if(layerProp == null)
-            Debug.LogError(layerListName + " is unvalid property name");
-
-        int idx = 0;
-
-        for (int i = 0; i < LayerManager.MaxLayerCount; i++)
-        {
-            string name = LayerMask.LayerToName(i);
-
-            if (name.Length > 0)
-            {
-                indexLayerName[idx++] = name;
-            }
-        }
+        layerMaskProp = serializedObject.FindProperty("layerMask");
     }
 
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
-        var coll = indexLayerName.Keys;
-        layerProp.arraySize = coll.Count;
 
-        // target 은 값을 가져오는 용도로만 사용할 것
-        //        LayerSetting ls = target as LayerSetting;
 
-        ShowList(layerProp);
+        LayerManager lm = GameObject.FindObjectOfType<LayerManager>();
+        if (lm != null)
+        {
+            LayerManager.mManager = lm;
+            lm.InitLayer();
+        }
+
+        ShowList(layerMaskProp);
+
+        // target 은 값은 가져오는 용도로만 사용 가능.
+//        LayerSetting ls = target as LayerSetting;
 
         serializedObject.ApplyModifiedProperties();
 
@@ -56,16 +43,14 @@ public class LayerSettingEditor : Editor
 
     void ShowList(SerializedProperty prop)
     {
-        var coll = indexLayerName.Keys;
-
         EditorGUILayout.Space();
-        
+
         if(layerListFold = EditorGUILayout.Foldout(layerListFold,new GUIContent("layers")))
         {
-            foreach (int key in coll)
+            foreach (var name in LayerManager.layerNameNumber.Keys)
             {
-                EditorGUILayout.PropertyField(prop.GetArrayElementAtIndex(key),
-                    new GUIContent(indexLayerName[key]));
+                SerializedProperty elementProperty = prop.GetArrayElementAtIndex(LayerManager.layerNameNumber[name]);
+                EditorGUILayout.PropertyField(elementProperty, new GUIContent(name));
             }
         }
         

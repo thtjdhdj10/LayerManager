@@ -2,184 +2,234 @@
 using System.Collections.Generic;
 
 public class LayerManager : MonoBehaviour {
-    
-    public const int MaxLayerCount = 32;
 
-    void Awake()
+    public bool useUnityBasicLayer = false;
+
+    enum CustomLayer
     {
-        for (int i = 0; i < MaxLayerCount; i++)
+        CONTROLABLE,
+        HITTABLE,
+        COUNT,
+    }
+
+    //
+
+    public static LayerManager mManager;
+
+    public static int MAX_LAYER_COUNT = 100;
+
+    private static int UNITY_MAX_LAYER_COUNT = 32;
+
+    public static Dictionary<string, int> layerNameNumber = new Dictionary<string, int>();
+
+    //
+
+    public void InitLayer()
+    {
+        MAX_LAYER_COUNT = Mathf.Min(MAX_LAYER_COUNT, int.MaxValue);
+
+        ClearLayer();
+        if (useUnityBasicLayer == true)
+            AddUnityLayer();
+        AddCumtomLayer();
+    }
+    
+    public void ClearLayer()
+    {
+        layerNameNumber.Clear();
+    }
+
+    public void AddUnityLayer()
+    {
+        for (int i = 0; i < UNITY_MAX_LAYER_COUNT; i++)
         {
             string name = LayerMask.LayerToName(i);
 
-            if (name.Length > 0)
-            {
-                layerNameNumber[name] = i;
-            }
+            AddLayer(name);
         }
     }
 
-    static Dictionary<string, int> layerNameNumber = new Dictionary<string, int>();
+    public void AddCumtomLayer()
+    {
+        for (int i = 0; i < (int)CustomLayer.COUNT; ++i)
+        {
+            string name = ((CustomLayer)i).ToString();
 
-    static public bool CheckLayer(int layer, string name)
+            AddLayer(name);
+        }
+    }
+
+    public static void AddLayer(string name)
+    {
+        if(name.Length == 0)
+            return;
+
+        if (layerNameNumber.ContainsKey(name) == true)
+            return;
+
+        int layerCount = layerNameNumber.Count;
+        if (layerCount < MAX_LAYER_COUNT)
+        {
+            layerNameNumber[name] = layerCount;
+        }
+    }
+
+    public static bool CheckLayer(bool[] layer, string name)
     {
         if (layerNameNumber.ContainsKey(name) == false)
-        {
-            Debug.LogWarning(name + " is unvalid layer name");
             return false;
-        }
 
         int number = layerNameNumber[name];
 
-        return CheckBit(layer, number);
+        return layer[number];
     }
 
-    static public bool CheckLayerOr(int layer, params string[] names)
+    public static bool CheckLayerOr(bool[] layer, params string[] names)
     {
         for (int i = 0; i < names.Length; ++i)
         {
             if (layerNameNumber.ContainsKey(names[i]) == false)
-            {
-                Debug.LogWarning(names[i] + " is unvalid layer name");
                 continue;
-            }
 
             int number = layerNameNumber[names[i]];
 
-            if (CheckBit(layer, number) == true)
+            if (layer[number] == true)
                 return true;
         }
 
         return false;
     }
 
-    static public bool CheckLayerAnd(int layer, params string[] names)
+    public static bool CheckLayerAnd(bool[] layer, params string[] names)
     {
         for (int i = 0; i < names.Length; ++i)
         {
             if (layerNameNumber.ContainsKey(names[i]) == false)
-            {
-                Debug.LogWarning(names[i] + " is unvalid layer name");
                 continue;
-            }
 
             int number = layerNameNumber[names[i]];
 
-            if (CheckBit(layer, number) == false)
+            if (layer[number] == false)
                 return false;
         }
 
         return true;
     }
 
-    static public void AddLayer(ref int layer, params string[] names)
+    public static void AddLayer(ref bool[] layer, params string[] names)
     {
         for (int i = 0; i < names.Length; ++i)
         {
+            if (layerNameNumber.ContainsKey(names[i]) == false)
+                continue;
+
             int number = layerNameNumber[names[i]];
 
-            AddBit(ref layer, number);
+            layer[number] = true;
         }
     }
 
-    static public void AddLayer(ref int layer, params int[] number)
+    public static void AddLayer(ref bool[] layer, params int[] number)
     {
         for (int i = 0; i < number.Length; ++i)
         {
-            AddBit(ref layer, number[i]);
+            layer[number[i]] = true;
         }
     }
 
-    static public void RemoveLayer(ref int layer, params string[] names)
+    public static void RemoveLayer(ref bool[] layer, params string[] names)
     {
         for (int i = 0; i < names.Length; ++i)
         {
+            if (layerNameNumber.ContainsKey(names[i]) == false)
+                continue;
+
             int number = layerNameNumber[names[i]];
 
-            RemoveBit(ref layer, number);
+            layer[number] = false;
         }
     }
 
-    static public void RemoveLayer(ref int layer, params int[] number)
+    public static void RemoveLayer(ref bool[] layer, params int[] number)
     {
         for (int i = 0; i < number.Length; ++i)
         {
-            RemoveBit(ref layer, number[i]);
+            layer[number[i]] = false;
         }
     }
 
     //
 
-    static public int LogicalRightShift(int pattern, int shift)
+    public static bool[] StringToMask(string str)
     {
-        return pattern = unchecked((int)((uint)pattern >> shift));
-    }
+        bool[] ret = new bool[MAX_LAYER_COUNT];
 
-    static public bool CheckBit(int pattern, int number)
-    {
-        if (number < 0 || number >= 32)
-            return false;
-
-        int mask = NumberToMask(number);
-
-        return System.Convert.ToBoolean(mask & pattern);
-    }
-
-    static public void AddBit(ref int pattern, int number)
-    {
-        if (number < 0 || number >= 32)
-            return;
-
-        int mask = NumberToMask(number);
-
-        pattern = pattern | mask;
-    }
-
-    static public void RemoveBit(ref int pattern, int number)
-    {
-        if (number < 0 || number >= 32)
-            return;
-
-        int mask = NumberToMask(number);
-
-        mask = -1 ^ mask;
-
-        pattern = pattern & mask;
-    }
-
-    static public int StringToMask(string str)
-    {
-        if (layerNameNumber.ContainsKey(str) == false)
+        for (int i = 0; i < MAX_LAYER_COUNT; ++i)
         {
-            Debug.LogWarning(str + " is unvalid layer name");
-            return -1;
+            ret[i] = false;
         }
 
-        return NumberToMask(layerNameNumber[str]);
+        if (layerNameNumber.ContainsKey(str) == false)
+            return ret;
+
+        ret = GetMask(layerNameNumber[str]);
+
+        return ret;
     }
 
-    static public int StringToNumber(string str)
+    public static int StringToNumber(string str)
     {
         if (layerNameNumber.ContainsKey(str) == false)
-        {
-            Debug.LogWarning(str + " is unvalid layer name");
             return -1;
-        }
 
         return layerNameNumber[str];
     }
 
-    static public int NumberToMask(int number)
+    public static bool[] GetMask(int number)
     {
-        if (number < 0 || number >= 32)
-            return 0;
+        bool[] ret = new bool[MAX_LAYER_COUNT];
 
-        int rightMask = -1;
-        int leftMask = -1;
+        for (int i = 0; i < MAX_LAYER_COUNT; ++i)
+        {
+            ret[i] = false;
+        }
 
-        rightMask = LogicalRightShift(rightMask, sizeof(int) * 8 - number -1);
-        leftMask = leftMask << number;
+        if (number < 0 || number >= MAX_LAYER_COUNT)
+            return ret;
 
-        return rightMask & leftMask;
+        ret[number] = true;
+
+        return ret;
+    }
+
+    public static void LogicalRightShift(ref bool[] pattern, int shift)
+    {
+        for (int i = pattern.Length - 1; i >= 0; --i)
+        {
+            if (i > shift)
+            {
+                pattern[i] = pattern[i - shift];
+            }
+            else
+            {
+                pattern[i] = false;
+            }
+        }
+    }
+
+    public static void LogicalLeftShift(ref bool[] pattern, int shift)
+    {
+        for (int i = 0; i < pattern.Length; ++i)
+        {
+            if (i < shift)
+            {
+                pattern[i] = pattern[i + shift];
+            }
+            else
+            {
+                pattern[i] = false;
+            }
+        }
     }
 
 }
